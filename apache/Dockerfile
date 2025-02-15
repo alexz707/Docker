@@ -6,9 +6,9 @@ ARG CERT_PRIVATE_KEY
 
 # use selfsigned certificate
 RUN mkdir -p /etc/apache2/ssl && \
-    echo "$CERT_PUBLIC_KEY" > /etc/apache2/ssl/cert.pem && \
-    echo "$CERT_PRIVATE_KEY" > /etc/apache2/ssl/key.pem && \
-    chmod 600 /etc/apache2/ssl/key.pem && chmod 644 /etc/apache2/ssl/cert.pem && \
+    echo "$CERT_PUBLIC_KEY" > /usr/local/apache2/conf/server.crt && \
+    echo "$CERT_PRIVATE_KEY" > /usr/local/apache2/conf/server.key && \
+    chmod 600 /usr/local/apache2/conf/server.key && chmod 644 /usr/local/apache2/conf/server.crt && \
     sed -i \
 		-e 's/^#\(Include .*httpd-ssl.conf\)/\1/' \
 		-e 's/^#\(LoadModule .*mod_ssl.so\)/\1/' \
