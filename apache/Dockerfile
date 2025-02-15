@@ -5,7 +5,9 @@ ARG CERT_PUBLIC_KEY
 ARG CERT_PRIVATE_KEY
 
 # use selfsigned certificate
-RUN mkdir -p /etc/apache2/cert && \
+RUN CERT_PUBLIC_KEY=${CERT_PUBLIC_KEY} && \
+    CERT_PRIVATE_KEY=${CERT_PRIVATE_KEY} && \
+    mkdir -p /etc/apache2/cert && \
     echo "$CERT_PUBLIC_KEY" > /etc/apache2/cert/server.crt && \
     echo "$CERT_PRIVATE_KEY" > /etc/apache2/cert/server.key && \
     chmod 600 /etc/apache2/cert/server.key && chmod 644 /etc/apache2/cert/server.crt && \
