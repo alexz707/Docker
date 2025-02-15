@@ -1,0 +1,68 @@
+name: Build Wingbits Docker Images
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      #linux-386 linux-arm darwin-arm64
+      GOOSARCH_LIST: "linux-amd64 linux-arm64"
+      DOCKER_BUILDKIT: 0
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - # Add support for more platforms with QEMU (optional)
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Get Wingbits versions
+        run: |
+          VERSIONS=()
+          IMAGEEXISTS=()
+          ALLIMAGEEXISTS=true
+
+          for GOOSARCH in $GOOSARCH_LIST; do
+            URL="https://install.wingbits.com/$GOOSARCH.json"
+            VERSION=$(curl -s --retry 5 --retry-connrefused --retry-delay 3 "$URL" | grep -o '"Version": "[^"]*"' | cut -d'"' -f4)
+            VERSIONS+=("$VERSION")
+
+            IMAGE="alexz707/wingbits:${VERSION}-${GOOSARCH}"
+            if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
+              IMAGEEXISTS+=("true")
+            else
+              IMAGEEXISTS+=("false")
+              ALLIMAGEEXISTS=false
+            fi
+          done
+
+          UNIQUE_VERSIONS=$(echo "${VERSIONS[*]}" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+          echo "VERSIONS=${UNIQUE_VERSIONS}" >> $GITHUB_ENV
+          echo "IMAGEEXISTS=${IMAGEEXISTS[*]}" >> $GITHUB_ENV
+          echo "ALLIMAGEEXISTS=$ALLIMAGEEXISTS" >> $GITHUB_ENV
+
+      - name: Build and push Docker images
+        if: env.ALLIMAGEEXISTS == 'false'
+        run: |
+          IFS=' ' read -r -a VERSION_ARRAY <<< "$VERSIONS"
+          IFS=' ' read -r -a GOOSARCH_ARRAY <<< "$GOOSARCH_LIST"
+          DOCKER_OS_ARCH_LIST=$(echo "$GOOSARCH_LIST" | sed -e 's/-/\//g' -e 's/ /,/g')
+          for VERSION_TAG in "${VERSION_ARRAY[@]}"; do
+            echo "Building image for version: $VERSION_TAG"
+            docker buildx build --platform $DOCKER_OS_ARCH_LIST \
+              -t ${{ secrets.DOCKERHUB_USERNAME }}/wingbits:latest \
+              -t ${{ secrets.DOCKERHUB_USERNAME }}/wingbits:$VERSION_TAG --push wingbits
+          done
