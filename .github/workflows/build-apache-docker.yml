@@ -25,6 +25,9 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
+          build-args: |
+            CERT_PUBLIC_KEY=${{ secrets.CERT_PUBLIC_KEY }}
+            CERT_PRIVATE_KEY=${{ secrets.CERT_PRIVATE_KEY }}
           context: .
           file: ./apache/Dockerfile
           push: true
