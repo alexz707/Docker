@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM http:latest
+FROM httpd:latest
 
 ARG CERT_PUBLIC_KEY
 ARG CERT_PRIVATE_KEY
