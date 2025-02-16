@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu/apache2:latest
 
-ARG CERT_PUBLIC_KEY
-ARG CERT_PRIVATE_KEY
+ARG CERT_PUBLIC_KEY_B64
+ARG CERT_PRIVATE_KEY_B64
 
 # use selfsigned certificate
 RUN mkdir -p /etc/apache2/cert && \
-    printf "%s" "$CERT_PUBLIC_KEY" > /etc/apache2/cert/server.crt && \
-    printf "%s" "$CERT_PRIVATE_KEY" > /etc/apache2/cert/server.key && \
+    echo "$CERT_PUBLIC_KEY_B64" | base64 -d > /etc/apache2/cert/server.crt && \
+    echo "$CERT_PRIVATE_KEY_B64" | base64 -d > /etc/apache2/cert/server.key && \
     chmod 600 /etc/apache2/cert/server.key && chmod 644 /etc/apache2/cert/server.crt && \
     a2enmod ssl && \
     a2enmod rewrite && \
