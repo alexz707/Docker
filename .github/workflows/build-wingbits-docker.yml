@@ -2,6 +2,8 @@ name: Build Wingbits Docker Images
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 13 * * *"
 
 jobs:
   build-and-deploy:
@@ -67,7 +69,7 @@ jobs:
           echo "========================================"
           echo "Results:"
           for i in "${!GOOSARCH_LIST[@]}"; do
-            echo "🧩 ${GOOSARCH_LIST[i]}: Version ${VERSIONS[i]}, Existiert: ${IMAGEEXISTS[i]}"
+            echo "🧩 ${GOOSARCH_LIST[i]}: Version ${VERSIONS[i]}, exists: ${IMAGEEXISTS[i]}"
           done
           
           if $ALLIMAGEEXISTS; then
