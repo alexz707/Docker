@@ -22,8 +22,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - # Add support for more platforms with QEMU (optional)
-        name: Set up QEMU
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y jq
+
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -34,21 +38,44 @@ jobs:
           VERSIONS=()
           IMAGEEXISTS=()
           ALLIMAGEEXISTS=true
-
+          echo "Start checking following architectures: ${GOOSARCH_LIST[*]}"
           for GOOSARCH in $GOOSARCH_LIST; do
+            echo "----------------------------------------"
+            echo "📦 Checking architecture: $GOOSARCH"
             URL="https://install.wingbits.com/$GOOSARCH.json"
+            echo "🌐 Fetching version from: $URL"
             VERSION=$(curl -s --retry 5 --retry-connrefused --retry-delay 3 "$URL" | grep -o '"Version": "[^"]*"' | cut -d'"' -f4)
+            echo "🔢 Found version: $VERSION"
             VERSIONS+=("$VERSION")
 
-            IMAGE="alexz707/wingbits:${VERSION}-${GOOSARCH}"
-            if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
+            IMAGE="alexz707/wingbits:${VERSION}"
+            OS="${GOOSARCH%%-*}"
+            ARCH="${GOOSARCH#*-}"
+            
+            echo "🔎 Check if $IMAGE supports $OS/$ARCH"
+            if docker manifest inspect "$IMAGE" | jq -e \
+              --arg os "$OS" --arg arch "$ARCH" \
+              '.manifests[] | select(.platform.os == $os and .platform.architecture == $arch)' > /dev/null; then
+              echo "✅ Architecture $OS/$ARCH supported"
               IMAGEEXISTS+=("true")
             else
+              echo "❌ Architecture $OS/$ARCH missing"
               IMAGEEXISTS+=("false")
               ALLIMAGEEXISTS=false
             fi
           done
-
+          echo "========================================"
+          echo "Results:"
+          for i in "${!GOOSARCH_LIST[@]}"; do
+            echo "🧩 ${GOOSARCH_LIST[i]}: Version ${VERSIONS[i]}, Existiert: ${IMAGEEXISTS[i]}"
+          done
+          
+          if $ALLIMAGEEXISTS; then
+            echo "All images exist."
+          else
+            echo "At least one image is missing."
+          fi
+          
           UNIQUE_VERSIONS=$(echo "${VERSIONS[*]}" | tr ' ' '\n' | sort -u | tr '\n' ' ')
           echo "VERSIONS=${UNIQUE_VERSIONS}" >> $GITHUB_ENV
           echo "IMAGEEXISTS=${IMAGEEXISTS[*]}" >> $GITHUB_ENV
