@@ -24,11 +24,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Install Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y jq
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
