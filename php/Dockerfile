@@ -41,7 +41,11 @@ FROM base AS php-fpm
 
 ENV XDEBUG_MODE='develop'
 
-RUN apt-get install -y --no-install-recommends \
+RUN OPCACHE_PKG="" && \
+    if dpkg --compare-versions "${PHP_VERSION}" le "8.4"; then \
+        OPCACHE_PKG="php${PHP_VERSION}-opcache"; \
+    fi && \
+    apt-get install -y --no-install-recommends \
         php${PHP_VERSION}-apcu \
         php${PHP_VERSION}-bcmath \
         php${PHP_VERSION}-apcu \
@@ -58,7 +62,7 @@ RUN apt-get install -y --no-install-recommends \
         php${PHP_VERSION}-mbstring \
         php${PHP_VERSION}-memcached \
         php${PHP_VERSION}-mysql \
-        php${PHP_VERSION}-opcache \
+        ${OPCACHE_PKG} \
         php${PHP_VERSION}-readline \
         php${PHP_VERSION}-sqlite3 \
         php${PHP_VERSION}-xdebug \
