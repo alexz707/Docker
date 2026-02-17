@@ -38,4 +38,4 @@ jobs:
             PHP_VERSION=${{ matrix.tag }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/php-fpm:${{ matrix.tag }}
-            ${{ matrix.tag == '8.4' && format('{0}/php-fpm:latest', secrets.DOCKERHUB_USERNAME) || null}}
+            ${{ matrix.tag == '8.5' && format('{0}/php-fpm:latest', secrets.DOCKERHUB_USERNAME) || null}}
