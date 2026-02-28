@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         target: [ "php-fpm" ]
-        tag: [ "8.4", "8.5" ]
+        tag: [ "8.3", "8.4", "8.5" ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -13,6 +13,8 @@ WORKDIR /var/www/
 STOPSIGNAL SIGQUIT
 EXPOSE 9000
 
+ADD https://github.com/aptible/supercronic/releases/latest/download/supercronic-linux-amd64 /usr/local/bin/supercronic
+
 RUN apt-get update && \
     apt-get dist-upgrade -y && \
     apt-get install -y --no-install-recommends \
@@ -25,6 +27,7 @@ RUN apt-get update && \
     htop \
     iputils-ping \
     libzip-dev \
+    netcat-traditional \
     software-properties-common \
     ssh \
     unzip \
@@ -34,6 +37,7 @@ RUN apt-get update && \
     add-apt-repository ppa:ondrej/php &&  \
     apt-get update && \
     mkdir -p /var/log/php && \
+    chmod +x /usr/local/bin/supercronic && \
     #usermod -u 1000 www-data && \
     apt-get autoclean && apt-get autoremove --yes && rm -rf /tmp/* /var/tmp/* /usr/share/doc/*
 
@@ -82,7 +86,10 @@ RUN OPCACHE_PKG="" && \
 COPY ./php/${PHP_VERSION}/opcacheDev.ini "/etc/php/${PHP_VERSION}/mods-available/"
 COPY ./php/${PHP_VERSION}/dev.ini "/etc/php/${PHP_VERSION}/mods-available/"
 COPY ./php/${PHP_VERSION}/devFpm.ini "/etc/php/${PHP_VERSION}/mods-available/"
+COPY ./php/${PHP_VERSION}/docker-entrypoint.sh /usr/local/bin/
 
-RUN phpenmod -s cli opcacheDev dev && phpenmod -s fpm opcacheDev dev devFpm
+RUN phpenmod -s cli opcacheDev dev && phpenmod -s fpm opcacheDev dev devFpm && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
 
-ENTRYPOINT /usr/sbin/php-fpm${PHP_VERSION}
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["php-fpm${PHP_VERSION}", "-F", "-O"]
