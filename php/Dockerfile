@@ -92,4 +92,4 @@ RUN phpenmod -s cli opcacheDev dev && phpenmod -s fpm opcacheDev dev devFpm && \
     chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["php-fpm${PHP_VERSION}", "-F", "-O"]
+CMD ["/bin/sh", "-c", "exec php-fpm${PHP_VERSION} -F -O"]
