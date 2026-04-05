@@ -15,8 +15,8 @@ RUN apk add --no-cache \
         -o /usr/local/bin/supercronic \
     && chmod +x /usr/local/bin/supercronic /usr/local/bin/rclone
 
-COPY ./scripts/ /scripts/
-COPY ./cron/jobs /etc/cronjobs
+COPY ./backup/scripts/ /scripts/
+COPY ./backup/cron/jobs /etc/cronjobs
 
 RUN chmod +x /scripts/*.sh
 
