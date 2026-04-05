@@ -1,0 +1,9 @@
+# Backup cron jobs — times controlled by env vars with sensible defaults.
+# supercronic supports standard 5-field cron syntax.
+# Adjust schedule via BACKUP_MYSQL_SCHEDULE, BACKUP_FILES_SCHEDULE,
+# and BACKUP_NINJA_EXPORT_SCHEDULE environment variables if needed,
+# or replace this file with your own cron/jobs via a bind mount.
+
+0 22 * * * /scripts/backup-mysql.sh >> /proc/1/fd/1 2>&1
+0 23 * * * /scripts/backup-files.sh >> /proc/1/fd/1 2>&1
+30 23 * * * /scripts/backup-invoiceninja-export.sh >> /proc/1/fd/1 2>&1
