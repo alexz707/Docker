@@ -15,12 +15,12 @@
 #   RCLONE_BASE_PATH         base path on remote (default: backups)
 #
 # Secondary DB restore (e.g. all-inkl.com):
-#   SECONDARY_MYSQL_ENABLED  true/false (default: false)
+#   SECONDARY_MYSQL_ENABLED      true/false (default: false)
 #   SECONDARY_MYSQL_HOST
-#   SECONDARY_MYSQL_PORT     (default: 3306)
-#   SECONDARY_MYSQL_USER
-#   SECONDARY_MYSQL_PASS
-#   SECONDARY_MYSQL_DB_<NAME>  target DB name on secondary server
+#   SECONDARY_MYSQL_PORT         (default: 3306)
+#   SECONDARY_MYSQL_USER_<NAME>  per-database user on secondary server
+#   SECONDARY_MYSQL_PASS_<NAME>  per-database password on secondary server
+#   SECONDARY_MYSQL_DB_<NAME>    target DB name on secondary server
 
 set -euo pipefail
 
@@ -74,11 +74,13 @@ for NAME in $MYSQL_DATABASES; do
 
     if [ "$SECONDARY_ENABLED" = "true" ]; then
         SEC_DB_VAR="SECONDARY_MYSQL_DB_${NAME}"
+        SEC_USER_VAR="SECONDARY_MYSQL_USER_${NAME}"
+        SEC_PASS_VAR="SECONDARY_MYSQL_PASS_${NAME}"
         SEC_DB="${!SEC_DB_VAR:-}"
         SEC_HOST="${SECONDARY_MYSQL_HOST:-}"
         SEC_PORT="${SECONDARY_MYSQL_PORT:-3306}"
-        SEC_USER="${SECONDARY_MYSQL_USER:-}"
-        SEC_PASS="${SECONDARY_MYSQL_PASS:-}"
+        SEC_USER="${!SEC_USER_VAR:-}"
+        SEC_PASS="${!SEC_PASS_VAR:-}"
 
         if [ -z "$SEC_DB" ] || [ -z "$SEC_HOST" ] || [ -z "$SEC_USER" ]; then
             echo "WARNING: Secondary DB config incomplete for '${NAME}', skipping secondary restore."

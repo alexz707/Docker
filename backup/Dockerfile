@@ -7,6 +7,7 @@ RUN apk add --no-cache \
         curl \
         bash \
         tzdata \
+        unzip \
     && curl -fsSL https://downloads.rclone.org/rclone-current-linux-amd64.zip -o /tmp/rclone.zip \
     && unzip /tmp/rclone.zip -d /tmp \
     && mv /tmp/rclone-*-linux-amd64/rclone /usr/local/bin/rclone \
@@ -15,12 +16,9 @@ RUN apk add --no-cache \
         -o /usr/local/bin/supercronic \
     && chmod +x /usr/local/bin/supercronic /usr/local/bin/rclone
 
-COPY ./backup/scripts/ /scripts/
-COPY ./backup/cron/jobs /etc/cronjobs
-
-RUN chmod +x /scripts/*.sh
-
-# Volumes to back up are mounted under /backup-sources/<name>/
+# Scripts and cron/jobs are mounted at runtime via volumes:
+#   - /scripts/        (from Docker/backup/scripts/)
+#   - /etc/cronjobs    (from Docker/backup/cron/jobs)
 # rclone config is mounted at /root/.config/rclone/rclone.conf
 
 CMD ["supercronic", "/etc/cronjobs"]
