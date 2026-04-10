@@ -1,0 +1,4 @@
+NET_OPTIONS="--net-connector localhost,30015,beast_reduce_out --net-beast-reduce-optimize-for-mlat --net-beast-reduce-interval=0.125"
+READSB_NET_CONNECTOR=localhost,30015,beast_reduce_out
+READSB_NET_BEAST_REDUCE_OPTIMIZE_FOR_MLAT=true
+READSB_NET_BEAST_REDUCE_INTERVAL=0.125
