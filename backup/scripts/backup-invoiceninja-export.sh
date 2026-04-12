@@ -27,15 +27,22 @@ FILE="/tmp/invoiceninja-export-${DATE}.zip"
 
 echo "[$(date)] Requesting Invoice Ninja export..."
 
-HTTP_STATUS=$(curl -s -o "$FILE" -w "%{http_code}" \
+if ! HTTP_STATUS=$(curl -s -o "$FILE" -w "%{http_code}" \
     -X POST "${INVOICENINJA_URL}/api/v1/export" \
     -H "X-API-Token: ${INVOICENINJA_API_TOKEN}" \
     -H "X-Requested-With: XMLHttpRequest" \
     -H "Content-Type: application/json" \
-    -d '{"send_email": false}')
+    -d '{"send_email": false}'); then
+    echo "ERROR: curl failed to connect to ${INVOICENINJA_URL} (network error or unreachable host)."
+    rm -f "$FILE"
+    exit 1
+fi
+
+echo "[$(date)] HTTP status: ${HTTP_STATUS}"
 
 if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
-    echo "ERROR: Invoice Ninja export returned HTTP ${HTTP_STATUS}. Skipping upload."
+    echo "ERROR: Invoice Ninja export returned HTTP ${HTTP_STATUS}."
+    echo "Response body: $(cat "$FILE")"
     rm -f "$FILE"
     exit 1
 fi
@@ -49,9 +56,15 @@ fi
 echo "[$(date)] Uploading export to ${REMOTE}:${BASE_PATH}/invoiceninja-export/"
 rclone copyto "$FILE" "${REMOTE}:${BASE_PATH}/invoiceninja-export/${DATE}/export.zip"
 
-echo "[$(date)] Pruning old exports older than ${RETENTION_DAYS} days"
-rclone delete --min-age "${RETENTION_DAYS}d" "${REMOTE}:${BASE_PATH}/invoiceninja-export/" \
-    --rmdirs || true
+CUTOFF=$(date -d "@$(($(date +%s) - RETENTION_DAYS * 86400))" +%Y-%m-%d)
+echo "[$(date)] Pruning export backups older than ${RETENTION_DAYS} days (before ${CUTOFF})"
+rclone lsf --dirs-only "${REMOTE}:${BASE_PATH}/invoiceninja-export/" 2>/dev/null | while read -r dir; do
+    dir_date="${dir%/}"
+    if [[ "$dir_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$dir_date" < "$CUTOFF" ]]; then
+        echo "[$(date)] Purging old export directory: ${dir_date}"
+        rclone purge "${REMOTE}:${BASE_PATH}/invoiceninja-export/${dir_date}" || true
+    fi
+done
 
 rm "$FILE"
 echo "[$(date)] Invoice Ninja export backup done."

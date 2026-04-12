@@ -56,7 +56,7 @@ for NAME in $MYSQL_DATABASES; do
     FILE="/tmp/${NAME}_${DATE}.sql.gz"
     echo "[$(date)] Backing up database: ${NAME} (${DB} on ${HOST})"
 
-    mysqldump \
+    mariadb-dump \
         --host="$HOST" \
         --port="$PORT" \
         --user="$USER" \
@@ -86,11 +86,12 @@ for NAME in $MYSQL_DATABASES; do
             echo "WARNING: Secondary DB config incomplete for '${NAME}', skipping secondary restore."
         else
             echo "[$(date)] Restoring ${NAME} to secondary DB: ${SEC_DB} on ${SEC_HOST}"
-            zcat "$FILE" | mysql \
+            zcat "$FILE" | mariadb \
                 --host="$SEC_HOST" \
                 --port="$SEC_PORT" \
                 --user="$SEC_USER" \
                 --password="$SEC_PASS" \
+                --skip-ssl \
                 "$SEC_DB"
         fi
     fi

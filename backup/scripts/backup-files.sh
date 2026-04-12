@@ -52,9 +52,15 @@ for NAME in $FILE_BACKUPS; do
     echo "[$(date)] Backing up files: ${NAME} from ${SOURCE}"
     rclone sync "$SOURCE" "${REMOTE}:${BASE_PATH}/files/${NAME}/${DATE}/" "${RCLONE_ARGS[@]}"
 
-    echo "[$(date)] Pruning remote file backups older than ${RETENTION_DAYS} days for ${NAME}"
-    rclone delete --min-age "${RETENTION_DAYS}d" "${REMOTE}:${BASE_PATH}/files/${NAME}/" \
-        --rmdirs || true
+    CUTOFF=$(date -d "@$(($(date +%s) - RETENTION_DAYS * 86400))" +%Y-%m-%d)
+    echo "[$(date)] Pruning date-based backups older than ${RETENTION_DAYS} days (before ${CUTOFF}) for ${NAME}"
+    rclone lsf --dirs-only "${REMOTE}:${BASE_PATH}/files/${NAME}/" 2>/dev/null | while read -r dir; do
+        dir_date="${dir%/}"
+        if [[ "$dir_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$dir_date" < "$CUTOFF" ]]; then
+            echo "[$(date)] Purging old backup directory: ${dir_date}"
+            rclone purge "${REMOTE}:${BASE_PATH}/files/${NAME}/${dir_date}" || true
+        fi
+    done
 
     echo "[$(date)] Done: ${NAME}"
 done
