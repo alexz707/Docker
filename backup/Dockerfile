@@ -10,6 +10,7 @@ RUN apk add --no-cache \
         bash \
         tzdata \
         unzip \
+        jq \
     && curl -fsSL https://downloads.rclone.org/rclone-current-linux-amd64.zip -o /tmp/rclone.zip \
     && unzip /tmp/rclone.zip -d /tmp \
     && mv /tmp/rclone-*-linux-amd64/rclone /usr/local/bin/rclone \

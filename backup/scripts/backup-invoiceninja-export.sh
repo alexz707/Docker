@@ -47,14 +47,51 @@ if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
     exit 1
 fi
 
-if [ ! -s "$FILE" ]; then
-    echo "WARNING: Export response was empty (export may be async/email-based). Skipping upload."
-    rm -f "$FILE"
-    exit 0
+# Invoice Ninja returns 200 with {"message":"Processing","url":"..."} for async exports
+DOWNLOAD_URL=$(jq -r '.url // empty' "$FILE" 2>/dev/null)
+rm -f "$FILE"
+
+if [ -z "$DOWNLOAD_URL" ]; then
+    echo "ERROR: Could not parse download URL from export response."
+    exit 1
 fi
 
+echo "[$(date)] Export queued. Polling for download: ${DOWNLOAD_URL}"
+
+ZIP_FILE="/tmp/invoiceninja-export-${DATE}.zip"
+MAX_ATTEMPTS=12
+SLEEP_SECONDS=10
+
+for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+    echo "[$(date)] Attempt ${attempt}/${MAX_ATTEMPTS} — waiting ${SLEEP_SECONDS}s..."
+    sleep "$SLEEP_SECONDS"
+
+    DL_STATUS=$(curl -s -o "$ZIP_FILE" -w "%{http_code}" "$DOWNLOAD_URL") || {
+        echo "WARNING: curl failed on attempt ${attempt}, retrying..."
+        continue
+    }
+
+    if [ "$DL_STATUS" = "200" ] && [ -s "$ZIP_FILE" ]; then
+        # If the response is still JSON (still processing), keep waiting
+        if jq -e '.message' "$ZIP_FILE" > /dev/null 2>&1; then
+            echo "[$(date)] Still processing (attempt ${attempt})..."
+            rm -f "$ZIP_FILE"
+            continue
+        fi
+        echo "[$(date)] Export ready after attempt ${attempt}."
+        break
+    fi
+
+    if [ "$attempt" = "$MAX_ATTEMPTS" ]; then
+        echo "ERROR: Export not ready after ${MAX_ATTEMPTS} attempts. Last HTTP status: ${DL_STATUS}"
+        rm -f "$ZIP_FILE"
+        exit 1
+    fi
+done
+
 echo "[$(date)] Uploading export to ${REMOTE}:${BASE_PATH}/invoiceninja-export/"
-rclone copyto "$FILE" "${REMOTE}:${BASE_PATH}/invoiceninja-export/${DATE}/export.zip"
+rclone copyto "$ZIP_FILE" "${REMOTE}:${BASE_PATH}/invoiceninja-export/${DATE}/export.zip"
+rm -f "$ZIP_FILE"
 
 CUTOFF=$(date -d "@$(($(date +%s) - RETENTION_DAYS * 86400))" +%Y-%m-%d)
 echo "[$(date)] Pruning export backups older than ${RETENTION_DAYS} days (before ${CUTOFF})"
@@ -66,5 +103,4 @@ rclone lsf --dirs-only "${REMOTE}:${BASE_PATH}/invoiceninja-export/" 2>/dev/null
     fi
 done
 
-rm "$FILE"
 echo "[$(date)] Invoice Ninja export backup done."
