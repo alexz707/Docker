@@ -16,7 +16,8 @@ set -euo pipefail
 
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 REMOTE="${RCLONE_REMOTE:-destination}"
-BASE_PATH="${RCLONE_BASE_PATH:-backups}"
+BASE_PATH="${RCLONE_BASE_PATH-backups}"
+REMOTE_ROOT="${REMOTE}:${BASE_PATH:+${BASE_PATH}/}"
 DATE=$(date +%Y-%m-%d)
 
 if [ -z "${FILE_BACKUPS:-}" ]; then
@@ -50,15 +51,15 @@ for NAME in $FILE_BACKUPS; do
     fi
 
     echo "[$(date)] Backing up files: ${NAME} from ${SOURCE}"
-    rclone sync "$SOURCE" "${REMOTE}:${BASE_PATH}/files/${NAME}/${DATE}/" "${RCLONE_ARGS[@]}"
+    rclone sync "$SOURCE" "${REMOTE_ROOT}files/${NAME}/${DATE}/" "${RCLONE_ARGS[@]}"
 
     CUTOFF=$(date -d "@$(($(date +%s) - RETENTION_DAYS * 86400))" +%Y-%m-%d)
     echo "[$(date)] Pruning date-based backups older than ${RETENTION_DAYS} days (before ${CUTOFF}) for ${NAME}"
-    rclone lsf --dirs-only "${REMOTE}:${BASE_PATH}/files/${NAME}/" 2>/dev/null | while read -r dir; do
+    rclone lsf --dirs-only "${REMOTE_ROOT}files/${NAME}/" 2>/dev/null | while read -r dir; do
         dir_date="${dir%/}"
         if [[ "$dir_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$dir_date" < "$CUTOFF" ]]; then
             echo "[$(date)] Purging old backup directory: ${dir_date}"
-            rclone purge "${REMOTE}:${BASE_PATH}/files/${NAME}/${dir_date}" || true
+            rclone purge "${REMOTE_ROOT}files/${NAME}/${dir_date}" || true
         fi
     done
 

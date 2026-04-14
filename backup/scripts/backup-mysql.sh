@@ -26,7 +26,8 @@ set -euo pipefail
 
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 REMOTE="${RCLONE_REMOTE:-destination}"
-BASE_PATH="${RCLONE_BASE_PATH:-backups}"
+BASE_PATH="${RCLONE_BASE_PATH-backups}"
+REMOTE_ROOT="${REMOTE}:${BASE_PATH:+${BASE_PATH}/}"
 DATE=$(date +%Y-%m-%d_%H-%M)
 SECONDARY_ENABLED="${SECONDARY_MYSQL_ENABLED:-false}"
 
@@ -66,11 +67,11 @@ for NAME in $MYSQL_DATABASES; do
         --triggers \
         "$DB" | gzip > "$FILE"
 
-    echo "[$(date)] Uploading ${NAME} dump to ${REMOTE}:${BASE_PATH}/db/${NAME}/"
-    rclone copyto "$FILE" "${REMOTE}:${BASE_PATH}/db/${NAME}/${NAME}_${DATE}.sql.gz"
+    echo "[$(date)] Uploading ${NAME} dump to ${REMOTE_ROOT}db/${NAME}/"
+    rclone copyto "$FILE" "${REMOTE_ROOT}db/${NAME}/${NAME}_${DATE}.sql.gz"
 
     echo "[$(date)] Pruning remote backups older than ${RETENTION_DAYS} days for ${NAME}"
-    rclone delete --min-age "${RETENTION_DAYS}d" "${REMOTE}:${BASE_PATH}/db/${NAME}/" || true
+    rclone delete --min-age "${RETENTION_DAYS}d" "${REMOTE_ROOT}db/${NAME}/" || true
 
     if [ "$SECONDARY_ENABLED" = "true" ]; then
         SEC_DB_VAR="SECONDARY_MYSQL_DB_${NAME}"

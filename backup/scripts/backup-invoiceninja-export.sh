@@ -15,7 +15,8 @@ set -euo pipefail
 
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 REMOTE="${RCLONE_REMOTE:-destination}"
-BASE_PATH="${RCLONE_BASE_PATH:-backups}"
+BASE_PATH="${RCLONE_BASE_PATH-backups}"
+REMOTE_ROOT="${REMOTE}:${BASE_PATH:+${BASE_PATH}/}"
 DATE=$(date +%Y-%m-%d_%H-%M)
 
 if [ -z "${INVOICENINJA_URL:-}" ] || [ -z "${INVOICENINJA_API_TOKEN:-}" ]; then
@@ -89,17 +90,17 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
     fi
 done
 
-echo "[$(date)] Uploading export to ${REMOTE}:${BASE_PATH}/invoiceninja-export/"
-rclone copyto "$ZIP_FILE" "${REMOTE}:${BASE_PATH}/invoiceninja-export/${DATE}/export.zip"
+echo "[$(date)] Uploading export to ${REMOTE_ROOT}invoiceninja-export/"
+rclone copyto "$ZIP_FILE" "${REMOTE_ROOT}invoiceninja-export/${DATE}/export.zip"
 rm -f "$ZIP_FILE"
 
 CUTOFF=$(date -d "@$(($(date +%s) - RETENTION_DAYS * 86400))" +%Y-%m-%d)
 echo "[$(date)] Pruning export backups older than ${RETENTION_DAYS} days (before ${CUTOFF})"
-rclone lsf --dirs-only "${REMOTE}:${BASE_PATH}/invoiceninja-export/" 2>/dev/null | while read -r dir; do
+rclone lsf --dirs-only "${REMOTE_ROOT}invoiceninja-export/" 2>/dev/null | while read -r dir; do
     dir_date="${dir%/}"
     if [[ "$dir_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$dir_date" < "$CUTOFF" ]]; then
         echo "[$(date)] Purging old export directory: ${dir_date}"
-        rclone purge "${REMOTE}:${BASE_PATH}/invoiceninja-export/${dir_date}" || true
+        rclone purge "${REMOTE_ROOT}invoiceninja-export/${dir_date}" || true
     fi
 done
 
