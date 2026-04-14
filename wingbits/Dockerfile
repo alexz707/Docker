@@ -63,7 +63,7 @@ RUN set -e && COMMIT_ID=$(cat $WINGBITS_VERSION_PATH/json-version) && \
     [ -s "$WINGBITS_PATH/wingbits.gz" ] && \
     gunzip $WINGBITS_PATH/wingbits.gz && \
     chmod +x $WINGBITS_PATH/wingbits && \
-    rm -f $WINGBITS_PATH/wingbits.gz \
+    rm -f $WINGBITS_PATH/wingbits.gz
 
 COPY readsb /etc/default/readsb
 
