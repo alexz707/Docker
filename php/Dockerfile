@@ -39,7 +39,11 @@ RUN apt-get update && \
     mkdir -p /var/log/php && \
     chmod +x /usr/local/bin/supercronic && \
     #usermod -u 1000 www-data && \
-    apt-get autoclean && apt-get autoremove --yes && rm -rf /tmp/* /var/tmp/* /usr/share/doc/*
+    apt-get autoclean && apt-get autoremove --yes && rm -rf /tmp/* /var/tmp/* /usr/share/doc/* && \
+    # Add GlobalSign GCC R6 AlphaSSL CA 2025 intermediate \
+    curl -s http://secure.globalsign.com/cacert/gsgccr6alphasslca2025.crt \
+        | openssl x509 -inform DER -out /usr/local/share/ca-certificates/globalsign-gcc-r6-alphassl-ca-2025.crt && \
+    update-ca-certificates
 
 FROM base AS php-fpm
 
